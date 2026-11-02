@@ -45,10 +45,11 @@ guide](docs/documentation.md) for client setup, source freshness, and verificati
    make build
    ```
 
-3. **Set up your SpaceTraders credentials:**
-   ```bash
-   export SPACETRADERS_TOKEN=your_token_here
-   ```
+3. **Set up your SpaceTraders credentials:** Configure a secret helper or an
+   owner-only token file with `--token-command` or `--token-file`. Existing
+   `SPACETRADERS_API_TOKEN`, `SPACETRADERS_TOKEN`, and working-directory `.env`
+   tokens remain supported as fallbacks. See [gameplay credentials](docs/credentials.md)
+   for source order, password-manager setup, and reuse of an encrypted local app account.
 
 4. **Configure Claude Desktop (or other client):**
 
