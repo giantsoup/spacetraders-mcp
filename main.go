@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"os"
 
 	"spacetraders-mcp/pkg/client"
 	"spacetraders-mcp/pkg/config"
+	"spacetraders-mcp/pkg/docs"
 	"spacetraders-mcp/pkg/logging"
 	"spacetraders-mcp/pkg/resources"
 	"spacetraders-mcp/pkg/tools"
@@ -17,18 +19,11 @@ import (
 )
 
 func main() {
+	// Modified to support token-free documentation tools and documentation-only startup.
+	docsOnly := flag.Bool("docs-only", false, "Expose only public documentation tools; do not load game credentials")
+	flag.Parse()
 	// Set up error logging
 	errorLogger := log.New(os.Stderr, "[ERROR] ", log.LstdFlags|log.Lshortfile)
-
-	// Load configuration
-	cfg, err := config.Load()
-	if err != nil {
-		errorLogger.Printf("Configuration error: %v", err)
-		os.Exit(1)
-	}
-
-	// Create SpaceTraders client
-	spacetradersClient := client.NewClient(cfg.SpaceTradersAPIToken)
 
 	// Create MCP server with resource and logging capabilities
 	s := server.NewMCPServer(
@@ -37,6 +32,19 @@ func main() {
 		server.WithResourceCapabilities(false, false), // subscribe=false, listChanged=false
 		server.WithLogging(),                          // Enable MCP logging support
 	)
+	docs.Register(s, docs.NewCatalog())
+	if *docsOnly {
+		serve(s, errorLogger)
+		return
+	}
+
+	// Gameplay mode retains the existing credential requirement.
+	cfg, err := config.Load()
+	if err != nil {
+		errorLogger.Printf("Configuration error: %v", err)
+		os.Exit(1)
+	}
+	spacetradersClient := client.NewClient(cfg.SpaceTradersAPIToken)
 
 	// Create application logger
 	appLogger := logging.NewLogger(s)
@@ -227,7 +235,10 @@ func main() {
 	})
 
 	appLogger.Info("Server initialization complete")
+	serve(s, errorLogger)
+}
 
+func serve(s *server.MCPServer, errorLogger *log.Logger) {
 	// Start the stdio server with error logging (ServeStdio already handles signals gracefully)
 	if err := server.ServeStdio(s, server.WithErrorLogger(errorLogger)); err != nil && err != context.Canceled {
 		errorLogger.Printf("Server error: %v", err)

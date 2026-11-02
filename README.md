@@ -18,6 +18,13 @@ A Model Context Protocol (MCP) server that provides seamless integration between
 
 ## 🚀 Quick Start
 
+### Documentation without a game token
+
+Build with `go build -o spacetraders-mcp .` and launch with `--docs-only` for
+`search_docs`, `get_operation`, and `get_schema`. This mode skips game credentials
+and exposes only public API documentation tools. See the [documentation tools
+guide](docs/documentation.md) for client setup, source freshness, and verification.
+
 ### Prerequisites
 
 - Go 1.21 or higher
