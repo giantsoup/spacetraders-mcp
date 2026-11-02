@@ -22,7 +22,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          go-version: '1.26.x'
           cache-dependency-path: "**/go.sum"
 
       - name: Download dependencies
@@ -48,6 +48,9 @@ jobs:
       - name: Run basic tests (without API)
         run: go test -v ./test/...
 
+      - name: Check documentation verifier regressions
+        run: python3 -O -m unittest discover -s scripts -p 'test_*.py'
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
@@ -67,11 +70,14 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          go-version: '1.26.x'
           cache-dependency-path: "**/go.sum"
 
       - name: Build binary
         run: go build -v -o spacetraders-mcp .
+
+      - name: Verify documentation-only protocol without credentials
+        run: python3 scripts/check-documentation.py ./spacetraders-mcp
 
       - name: Test binary execution
         run: |
@@ -97,7 +103,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          go-version: '1.26.x'
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v8
@@ -125,7 +131,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          go-version: '1.26.x'
           cache-dependency-path: "**/go.sum"
 
       - name: Build cross-platform binary

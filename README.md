@@ -27,7 +27,7 @@ guide](docs/documentation.md) for client setup, source freshness, and verificati
 
 ### Prerequisites
 
-- Go 1.21 or higher
+- A current patched Go release. The module's minimum language version is Go 1.24.4.
 - Java 8+ and [OpenAPI Generator](https://openapi-generator.tech/docs/installation) (for `make build` on fresh clone; `brew install openapi-generator` on macOS)
 - Any MCP Client
 - SpaceTraders API token ([Get one here](https://spacetraders.io))

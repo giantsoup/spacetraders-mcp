@@ -1,6 +1,7 @@
 package docs
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"strings"
@@ -8,6 +9,8 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
+
+const maxResultBytes = 128 << 10
 
 func Register(s *server.MCPServer, catalog *Catalog) {
 	options := []mcp.ToolOption{
@@ -20,7 +23,7 @@ func Register(s *server.MCPServer, catalog *Catalog) {
 	searchOptions = append(searchOptions,
 		mcp.WithDescription("Search official SpaceTraders OpenAPI endpoint documentation. All query words must match. Returns operation IDs for get_operation, API version, source URL, hash, and retrieval time. Does not read game state."),
 		mcp.WithString("query", mcp.Required(), mcp.Description("Words to find in operation IDs, paths, summaries, descriptions, or tags.")),
-		mcp.WithNumber("limit", mcp.Description("Maximum results, 1 to 20. Defaults to 10.")),
+		mcp.WithNumber("limit", mcp.Min(1), mcp.Max(20), mcp.MultipleOf(1), mcp.DefaultNumber(10), mcp.Description("Maximum results, 1 to 20. Defaults to 10.")),
 	)
 	s.AddTool(mcp.NewTool("search_docs", searchOptions...), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		query, err := request.RequireString("query")
@@ -87,9 +90,14 @@ func Register(s *server.MCPServer, catalog *Catalog) {
 }
 
 func result(value interface{}) (*mcp.CallToolResult, error) {
-	data, err := json.Marshal(value)
-	if err != nil {
+	var data bytes.Buffer
+	encoder := json.NewEncoder(&data)
+	encoder.SetEscapeHTML(false)
+	if err := encoder.Encode(value); err != nil {
 		return mcp.NewToolResultError("encode documentation result: " + err.Error()), nil
 	}
-	return mcp.NewToolResultText(string(data)), nil
+	if data.Len() > maxResultBytes {
+		return mcp.NewToolResultError("documentation result exceeds 128 KiB; narrow the search or request a smaller schema"), nil
+	}
+	return mcp.NewToolResultText(data.String()), nil
 }

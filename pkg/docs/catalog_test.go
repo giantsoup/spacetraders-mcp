@@ -3,6 +3,7 @@ package docs
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -136,7 +137,7 @@ func TestCacheAndProvenance(t *testing.T) {
 	if count.Load() != 1 {
 		t.Fatalf("concurrent requests fetched %d documents", count.Load())
 	}
-	catalog.snapshot.Source.ExpiresAt = time.Now().Add(-time.Second)
+	catalog.fetchedAt = time.Now().Add(-cacheTTL)
 	if _, err := catalog.Load(context.Background()); err != nil || count.Load() != 2 {
 		t.Fatalf("expired snapshot was not refreshed: %v, requests %d", err, count.Load())
 	}
@@ -205,5 +206,61 @@ func TestToolValidationAndRetrieval(t *testing.T) {
 		if err := json.Unmarshal([]byte(result.Content[0].(mcp.TextContent).Text), &value); err != nil || value["source"] == nil {
 			t.Fatalf("%s result lost JSON or provenance: %v", name, err)
 		}
+	}
+}
+
+func TestRedirectAndCancellation(t *testing.T) {
+	t.Run("redirect is rejected before contacting another URL", func(t *testing.T) {
+		catalog := NewCatalog()
+		requests := 0
+		catalog.client.Transport = transportFunc(func(req *http.Request) (*http.Response, error) {
+			requests++
+			return &http.Response{
+				StatusCode: http.StatusFound,
+				Header:     http.Header{"Location": {"https://example.invalid/not-documentation"}},
+				Body:       io.NopCloser(strings.NewReader("")), Request: req,
+			}, nil
+		})
+		_, err := catalog.Load(context.Background())
+		if err == nil || !strings.Contains(err.Error(), "redirects are not supported") || requests != 1 {
+			t.Fatalf("redirect was followed: error %v, requests %d", err, requests)
+		}
+	})
+	t.Run("request cancellation reaches the HTTP transport", func(t *testing.T) {
+		catalog := NewCatalog()
+		catalog.client.Transport = transportFunc(func(req *http.Request) (*http.Response, error) {
+			<-req.Context().Done()
+			return nil, req.Context().Err()
+		})
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		_, err := catalog.Load(ctx)
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("lost context cancellation: %v", err)
+		}
+	})
+}
+
+func TestExpiredCacheFailureAndRecovery(t *testing.T) {
+	catalog, _ := testCatalog(t, fixture, http.StatusOK)
+	first, err := catalog.Load(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	catalog.fetchedAt = time.Now().Add(-cacheTTL)
+	catalog.client.Transport = transportFunc(func(req *http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: 503, Body: io.NopCloser(strings.NewReader("unavailable"))}, nil
+	})
+	if stale, err := catalog.Load(context.Background()); err == nil || stale != nil {
+		t.Fatal("failed refresh silently served an expired snapshot")
+	}
+	updated := strings.Replace(fixture, `"version":"2.3.0"`, `"version":"2.4.0"`, 1)
+	catalog.client.Transport = transportFunc(func(req *http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(updated))}, nil
+	})
+	catalog.failedAt = time.Now().Add(-failureTTL)
+	current, err := catalog.Load(context.Background())
+	if err != nil || current.Source.APIVersion != "2.4.0" || current.Source.SHA256 == first.Source.SHA256 {
+		t.Fatalf("cache did not recover to the new document: %v", err)
 	}
 }

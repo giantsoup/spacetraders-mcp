@@ -11,6 +11,9 @@
 # Test binary, built with `go test -c`
 *.test
 
+# Python verification artifacts
+__pycache__/
+
 # Code coverage profiles and other test artifacts
 *.out
 coverage.*

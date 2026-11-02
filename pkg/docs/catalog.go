@@ -16,9 +16,10 @@ import (
 )
 
 const (
-	SourceURL = "https://api.spacetraders.io/v2/documentation/json"
-	cacheTTL  = 15 * time.Minute
-	maxBytes  = 8 << 20
+	SourceURL  = "https://api.spacetraders.io/v2/documentation/json"
+	cacheTTL   = 15 * time.Minute
+	failureTTL = time.Second
+	maxBytes   = 8 << 20
 )
 
 type Source struct {
@@ -59,9 +60,19 @@ type Snapshot struct {
 }
 
 type Catalog struct {
-	mu       sync.Mutex
-	client   *http.Client
+	mu        sync.Mutex
+	client    *http.Client
+	snapshot  *Snapshot
+	fetchedAt time.Time
+	failedAt  time.Time
+	lastError error
+	loading   *loadFlight
+}
+
+type loadFlight struct {
+	done     chan struct{}
 	snapshot *Snapshot
+	err      error
 }
 
 func NewCatalog() *Catalog {
@@ -76,16 +87,64 @@ func NewCatalog() *Catalog {
 // Load fetches only the fixed documentation URL and reuses a fresh in-memory snapshot.
 // A failed refresh returns an error instead of silently serving an expired document.
 func (c *Catalog) Load(ctx context.Context) (*Snapshot, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.snapshot != nil && time.Now().Before(c.snapshot.Source.ExpiresAt) {
-		return c.snapshot, nil
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
+	c.mu.Lock()
+	if c.snapshot != nil && time.Since(c.fetchedAt) < cacheTTL {
+		snapshot := c.snapshot
+		c.mu.Unlock()
+		return snapshot, nil
+	}
+	if c.lastError != nil && time.Since(c.failedAt) < failureTTL {
+		err := c.lastError
+		c.mu.Unlock()
+		return nil, err
+	}
+	if flight := c.loading; flight != nil {
+		c.mu.Unlock()
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-flight.done:
+			if err := ctx.Err(); err != nil {
+				return nil, err
+			}
+			return flight.snapshot, flight.err
+		}
+	}
+	flight := &loadFlight{done: make(chan struct{})}
+	c.loading = flight
+	c.mu.Unlock()
+
+	snapshot, err := c.fetch(ctx)
+	c.mu.Lock()
+	if err == nil {
+		c.snapshot = snapshot
+		c.fetchedAt = time.Now()
+	}
+	c.lastError = nil
+	// Briefly share upstream failures with late arrivals, without caching a caller's cancellation.
+	if err != nil && ctx.Err() == nil {
+		c.lastError, c.failedAt = err, time.Now()
+	}
+	flight.snapshot, flight.err = snapshot, err
+	c.loading = nil
+	close(flight.done)
+	c.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	return snapshot, err
+}
+
+func (c *Catalog) fetch(ctx context.Context) (*Snapshot, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, SourceURL, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "spacetraders-mcp/documentation")
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("fetch official documentation: %w", err)
@@ -101,12 +160,7 @@ func (c *Catalog) Load(ctx context.Context) (*Snapshot, error) {
 	if len(body) > maxBytes {
 		return nil, fmt.Errorf("official documentation exceeds %d bytes", maxBytes)
 	}
-	snapshot, err := parse(body, time.Now().UTC())
-	if err != nil {
-		return nil, err
-	}
-	c.snapshot = snapshot
-	return snapshot, nil
+	return parse(body, time.Now().UTC())
 }
 
 func parse(body []byte, retrievedAt time.Time) (*Snapshot, error) {
