@@ -149,7 +149,7 @@ func (c *Catalog) fetch(ctx context.Context) (*Snapshot, error) {
 	if err != nil {
 		return nil, fmt.Errorf("fetch official documentation: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("official documentation returned HTTP %d", resp.StatusCode)
 	}
@@ -272,8 +272,7 @@ func (s *Snapshot) references(values ...json.RawMessage) (map[string]map[string]
 	seen := make(map[string]bool)
 	unresolved := make([]string, 0)
 	var walk func(interface{})
-	var scan func(json.RawMessage)
-	scan = func(raw json.RawMessage) {
+	scan := func(raw json.RawMessage) {
 		var value interface{}
 		if json.Unmarshal(raw, &value) == nil {
 			walk(value)
