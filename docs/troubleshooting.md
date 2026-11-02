@@ -53,7 +53,11 @@ The SpaceTraders API returns a 422 status code when request parameters don't mee
    - Check that your SpaceTraders token hasn't expired
    - Test the token directly with the SpaceTraders API
 
-2. **Check the selected credential source:** Read the source name in the MCP startup log and follow the [credential guide](credentials.md). Check helper availability or file permissions without printing the token. The agent identity is determined by the token.
+2. **Check environment variables:**
+   ```bash
+   echo $SPACETRADERS_TOKEN
+   echo $SPACETRADERS_AGENT_SYMBOL
+   ```
 
 3. **Restart the MCP server:**
    - Restart Claude Desktop to refresh the connection

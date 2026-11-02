@@ -4,10 +4,13 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/spf13/viper"
 )
 
 func TestLoad_WithEnvFile(t *testing.T) {
-	cleanEnvironment(t)
+	// Reset viper state
+	viper.Reset()
 
 	// Create a temporary directory for test files
 	tmpDir := t.TempDir()
@@ -42,7 +45,7 @@ func TestLoad_WithEnvFile(t *testing.T) {
 	}
 
 	// Test Load
-	config, err := Load(Options{})
+	config, err := Load()
 	if err != nil {
 		t.Fatalf("Load returned error: %v", err)
 	}
@@ -54,7 +57,8 @@ func TestLoad_WithEnvFile(t *testing.T) {
 }
 
 func TestLoad_WithEnvironmentVariable(t *testing.T) {
-	cleanEnvironment(t)
+	// Reset viper state
+	viper.Reset()
 
 	// Create a temporary directory without .env file
 	tmpDir := t.TempDir()
@@ -87,7 +91,7 @@ func TestLoad_WithEnvironmentVariable(t *testing.T) {
 	}()
 
 	// Test Load
-	config, err := Load(Options{})
+	config, err := Load()
 	if err != nil {
 		t.Fatalf("Load returned error: %v", err)
 	}
@@ -98,7 +102,8 @@ func TestLoad_WithEnvironmentVariable(t *testing.T) {
 }
 
 func TestLoad_MissingToken(t *testing.T) {
-	cleanEnvironment(t)
+	// Reset viper state
+	viper.Reset()
 
 	// Create a temporary directory without .env file
 	tmpDir := t.TempDir()
@@ -125,7 +130,7 @@ func TestLoad_MissingToken(t *testing.T) {
 	}
 
 	// Test Load
-	config, err := Load(Options{})
+	config, err := Load()
 	if err == nil {
 		t.Fatal("Expected error for missing token, got nil")
 	}
@@ -134,14 +139,15 @@ func TestLoad_MissingToken(t *testing.T) {
 		t.Error("Expected nil config on error, got non-nil")
 	}
 
-	expectedError := "no usable SpaceTraders agent token; configure --token-command, --token-file, SPACETRADERS_API_TOKEN, or SPACETRADERS_TOKEN"
+	expectedError := "SPACETRADERS_API_TOKEN is required"
 	if err.Error() != expectedError {
 		t.Errorf("Expected error message '%s', got '%s'", expectedError, err.Error())
 	}
 }
 
 func TestLoad_EmptyToken(t *testing.T) {
-	cleanEnvironment(t)
+	// Reset viper state
+	viper.Reset()
 
 	// Create a temporary directory for test files
 	tmpDir := t.TempDir()
@@ -176,7 +182,7 @@ func TestLoad_EmptyToken(t *testing.T) {
 	}
 
 	// Test Load
-	config, err := Load(Options{})
+	config, err := Load()
 	if err == nil {
 		t.Fatal("Expected error for empty token, got nil")
 	}
@@ -187,7 +193,8 @@ func TestLoad_EmptyToken(t *testing.T) {
 }
 
 func TestLoad_EnvironmentOverridesFile(t *testing.T) {
-	cleanEnvironment(t)
+	// Reset viper state
+	viper.Reset()
 
 	// Create a temporary directory for test files
 	tmpDir := t.TempDir()
@@ -228,7 +235,7 @@ func TestLoad_EnvironmentOverridesFile(t *testing.T) {
 	}()
 
 	// Test Load
-	config, err := Load(Options{})
+	config, err := Load()
 	if err != nil {
 		t.Fatalf("Load returned error: %v", err)
 	}
@@ -240,7 +247,8 @@ func TestLoad_EnvironmentOverridesFile(t *testing.T) {
 }
 
 func TestLoad_InvalidEnvFile(t *testing.T) {
-	cleanEnvironment(t)
+	// Reset viper state
+	viper.Reset()
 
 	// Create a temporary directory for test files
 	tmpDir := t.TempDir()
@@ -279,7 +287,7 @@ func TestLoad_InvalidEnvFile(t *testing.T) {
 	}()
 
 	// Test Load - should handle invalid config file gracefully
-	config, err := Load(Options{})
+	config, err := Load()
 	if err != nil {
 		t.Fatalf("Load should handle invalid config file gracefully, got error: %v", err)
 	}

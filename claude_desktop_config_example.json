@@ -1,11 +1,31 @@
 {
   "mcpServers": {
     "spacetraders": {
-      "command": "/absolute/path/to/spacetraders-mcp/spacetraders-mcp",
-      "args": [
-        "--token-file",
-        "/private/path/agent-token"
-      ]
+      "command": "/absolute/path/to/your/spacetraders-mcp/spacetraders-mcp",
+      "args": []
     }
   }
 }
+
+// Alternative: If you prefer to set the API token via environment variable
+// instead of using a .env file, use this configuration:
+//
+// {
+//   "mcpServers": {
+//     "spacetraders": {
+//       "command": "/absolute/path/to/your/spacetraders-mcp/spacetraders-mcp",
+//       "args": [],
+//       "env": {
+//         "SPACETRADERS_API_TOKEN": "your_api_token_here"
+//       }
+//     }
+//   }
+// }
+//
+// Note: The server provides MCP resources (like agent info) and will automatically use either:
+// 1. A .env file in the same directory as the binary (recommended)
+// 2. Environment variables set in the Claude Desktop config
+// 3. System environment variables
+//
+// Available resources:
+// - spacetraders://agent/info - Current agent information (credits, ships, etc.)

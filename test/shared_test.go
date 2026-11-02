@@ -114,7 +114,7 @@ func callMCPServer(t *testing.T, request string) []byte {
 	}
 
 	// Check if we can load a valid config (which means token is available)
-	if cfg, err := config.Load(config.Options{}); err == nil && cfg.SpaceTradersAPIToken != "" {
+	if cfg, err := config.Load(); err == nil && cfg.SpaceTradersAPIToken != "" {
 		// Token is available via config system, set it as environment variable for subprocess
 		serverCmd.Env = append(os.Environ(), "SPACETRADERS_API_TOKEN="+cfg.SpaceTradersAPIToken)
 	} else {

@@ -18,9 +18,14 @@ cd spacetraders-mcp
 go build -o spacetraders-mcp
 ```
 
-### 2. Configure credentials
+### 2. Set Up Environment Variables
 
-Use `--token-command` for a secret helper or `--token-file` for an owner-only token file. The [credential guide](credentials.md) documents fallback order and an adapter for encrypted credentials saved by the local Laravel app. Environment and `.env` tokens remain supported. The agent identity comes from the token; `SPACETRADERS_AGENT_SYMBOL` is not used by this server.
+Create a `.env` file or set environment variables:
+
+```bash
+export SPACETRADERS_TOKEN=your_token_here
+export SPACETRADERS_AGENT_SYMBOL=your_agent_symbol
+```
 
 ## Claude Desktop Configuration
 
@@ -36,7 +41,7 @@ Add the SpaceTraders MCP server configuration:
   "mcpServers": {
     "spacetraders": {
       "command": "/path/to/spacetraders-mcp/spacetraders-mcp",
-      "args": ["--token-file", "/private/path/agent-token"]
+      "args": []
     }
   }
 }
@@ -56,7 +61,7 @@ Use the same JSON configuration as above, but ensure the path uses Windows-style
   "mcpServers": {
     "spacetraders": {
       "command": "C:\\path\\to\\spacetraders-mcp\\spacetraders-mcp.exe",
-      "args": ["--token-file", "C:\\private\\agent-token"]
+      "args": []
     }
   }
 }
@@ -71,7 +76,7 @@ Use the same JSON configuration as macOS.
 
 ## Environment Variables in Configuration
 
-You can put a secret reference in the Claude Desktop configuration without storing the token itself:
+If you prefer to set environment variables directly in the Claude Desktop configuration:
 
 ```json
 {
@@ -80,7 +85,8 @@ You can put a secret reference in the Claude Desktop configuration without stori
       "command": "/path/to/spacetraders-mcp/spacetraders-mcp",
       "args": [],
       "env": {
-        "SPACETRADERS_TOKEN_FILE": "/private/path/agent-token"
+        "SPACETRADERS_TOKEN": "your_token_here",
+        "SPACETRADERS_AGENT_SYMBOL": "your_agent_symbol"
       }
     }
   }
@@ -149,11 +155,17 @@ To use multiple SpaceTraders agents, create separate MCP server configurations:
   "mcpServers": {
     "spacetraders-agent1": {
       "command": "/path/to/spacetraders-mcp",
-      "args": ["--token-file", "/private/path/agent1-token"]
+      "env": {
+        "SPACETRADERS_TOKEN": "token1",
+        "SPACETRADERS_AGENT_SYMBOL": "AGENT1"
+      }
     },
     "spacetraders-agent2": {
       "command": "/path/to/spacetraders-mcp",
-      "args": ["--token-file", "/private/path/agent2-token"]
+      "env": {
+        "SPACETRADERS_TOKEN": "token2",
+        "SPACETRADERS_AGENT_SYMBOL": "AGENT2"
+      }
     }
   }
 }

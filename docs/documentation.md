@@ -7,7 +7,7 @@ go build -o spacetraders-mcp .
 ./spacetraders-mcp --docs-only
 ```
 
-This is a stdio MCP server. Your client starts it and communicates over stdin/stdout; it does not listen on a network port. In this mode the server skips game configuration, including `.env`, secret files, and secret helpers, and registers only the three documentation tools. It registers no gameplay resources or gameplay prompts. Running without the flag requires an agent credential from the [ordered credential sources](credentials.md) and also adds documentation tools.
+This is a stdio MCP server. Your client starts it and communicates over stdin/stdout; it does not listen on a network port. In this mode the server skips game configuration, including `.env`, and registers only the three documentation tools. It registers no gameplay resources or gameplay prompts. Running without the flag retains the existing gameplay credential requirement and also adds documentation tools.
 
 Build with a current patched Go release. The `go.mod` language minimum is a compatibility floor, not a recommendation to ship that old compiler's standard library. CI uses the maintained Go 1.26 patch line. [Official Go releases](https://go.dev/dl/) and [Go vulnerability checking](https://go.dev/doc/security/vuln/) describe the available releases and security checks.
 

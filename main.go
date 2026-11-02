@@ -21,8 +21,6 @@ import (
 func main() {
 	// Modified to support token-free documentation tools and documentation-only startup.
 	docsOnly := flag.Bool("docs-only", false, "Expose only public documentation tools; do not load game credentials")
-	tokenFile := flag.String("token-file", "", "Read the agent token from an owner-only secret file")
-	tokenCommand := flag.String("token-command", "", "Read the agent token from a secret helper, supplied as a JSON argv array")
 	flag.Parse()
 	// Set up error logging
 	errorLogger := log.New(os.Stderr, "[ERROR] ", log.LstdFlags|log.Lshortfile)
@@ -41,13 +39,10 @@ func main() {
 	}
 
 	// Gameplay mode retains the existing credential requirement.
-	cfg, err := config.Load(config.Options{TokenFile: *tokenFile, TokenCommand: *tokenCommand})
+	cfg, err := config.Load()
 	if err != nil {
 		errorLogger.Printf("Configuration error: %v", err)
 		os.Exit(1)
-	}
-	for _, warning := range cfg.Warnings {
-		fmt.Fprintln(os.Stderr, "Credential fallback:", warning)
 	}
 	spacetradersClient := client.NewClient(cfg.SpaceTradersAPIToken)
 
@@ -64,7 +59,6 @@ func main() {
 	appLogger.Debug("MCP server configured - resources/list and tools/list calls will be handled automatically")
 
 	appLogger.Info("Starting SpaceTraders MCP Server")
-	appLogger.Info("Gameplay credential source: %s", cfg.TokenSource)
 
 	// Register all resources
 	resourceRegistry := resources.NewRegistry(spacetradersClient, appLogger)

@@ -38,8 +38,8 @@ func checkAPITokenAvailable(t *testing.T) {
 	}
 
 	// Skip if no API token is available
-	if _, err := config.Load(config.Options{}); err != nil {
-		t.Skip("SpaceTraders agent credential not available, skipping integration test")
+	if _, err := config.Load(); err != nil {
+		t.Skip("SPACETRADERS_API_TOKEN not available, skipping integration test")
 	}
 }
 
